@@ -117,21 +117,23 @@ public class Music.Application : Gtk.Application {
         var glib_list = new GLib.List<FileInfo> ();
 
         try {
-            var enumerator = directory.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS);
+            var enumerator = directory.enumerate_children (
+                FileAttribute.STANDARD_NAME,
+                FileQueryInfoFlags.NOFOLLOW_SYMLINKS);
             FileInfo file_info;
-            while ((file_info = enumerator.next_file()) != null) {
-                glib_list.append(file_info);
+            while ((file_info = enumerator.next_file ()) != null) {
+                glib_list.append (file_info);
             }
-        } catch(Error e) {
+        } catch (Error e) {
             warning (e.message);
             return {};
         }
 
         // do no trust enumerate_children for sorting
-        glib_list.sort((a, b) => {
+        glib_list.sort ((a, b) => {
             string c = a.get_name ();
             string d = b.get_name ();
-            return strcmp(c, d);
+            return strcmp (c, d);
         });
 
         foreach (var info in glib_list) {
