@@ -103,28 +103,47 @@ public class Music.Application : Gtk.Application {
         settings.bind ("window-maximized", main_window, "maximized", SettingsBindFlags.SET);
     }
 
-    private File[] list_directory (string directory) {
+    private File[] list_directory (File directory) {
         Dir dir;
         try {
-            dir = Dir.open (directory, 0);
+            dir = Dir.open (directory.get_path (), 0);
         } catch (FileError e) {
             warning (e.message);
             return {};
         }
 
-        string? name = null;
         File[] elements = {};
 
-        while ((name = dir.read_name ()) != null) {
-            var file_path = Path.build_filename (directory, name);
-            var file = File.new_for_path (file_path);
+        var glib_list = new GLib.List<FileInfo> ();
+                
+        try {
+          var enumerator = directory.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS);
+          FileInfo file_info;
+          while ((file_info = enumerator.next_file()) != null) {
+            glib_list.append(file_info);
+          }
+        } catch(Error e) {
+          warning (e.message);
+          return {};
+        }
 
-            elements += file;
+        // do no trust enumerate_children for sorting
+        glib_list.sort((a, b) => {
+          string c = a.get_name ();
+          string d = b.get_name ();
+          return strcmp(c, d);
+        });
+
+        foreach (var info in glib_list) {
+          var directory_file_path = Path.build_filename (directory.get_path (), info.get_name ());
+          var directory_file = File.new_for_path (directory_file_path);
+
+          elements += directory_file;
         }
 
         return elements;
     }
-
+    
     private File[] loop_through_files (File[] files) {
         // All of these will be returned later in bulk
         File[] elements = {};
@@ -133,9 +152,9 @@ public class Music.Application : Gtk.Application {
             var file_path = file.get_path ();
 
             if (FileUtils.test (file_path, FileTest.IS_DIR)) {
-                var directory_elements = list_directory (file_path);
+                var directory_elements = list_directory (file);
                 var directory_files = loop_through_files (directory_elements);
-
+                
                 foreach (var directory_file in directory_files) {
                     elements += directory_file;
                 }
